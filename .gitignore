@@ -1,4 +1,5 @@
 *.bak
+*.h5
 record/
 data
 __pycache__/
