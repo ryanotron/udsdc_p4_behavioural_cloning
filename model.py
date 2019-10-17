@@ -11,15 +11,9 @@ from sklearn.model_selection import train_test_split
 import os, csv, math
 import matplotlib.image as mpim
 import numpy as np
+import cv2
 
-def net2():
-    model = Sequential()
-    
-#     model.add(Lambda(lambda x: (x/255)-0.5, input_shape=(160, 320, 3)))
-    model.add(Flatten(input_shape=(160, 320, 3)))
-    model.add(Dense(1))
-    model.compile(loss='mse', optimizer='adam')
-    return model
+angle_offset = 0.1 # what angle to add/subtract for side cameras
 
 def network():
     model = Sequential()
@@ -72,11 +66,31 @@ def network():
 
 
 def get_samples_list(fname):
+    global angle_offset
     samples = []
     with open(fname, 'r') as csvfile:
         reader = csv.reader(csvfile)
         for line in reader:
-            samples.append(line)
+            theta = float(line[3])
+            
+            # add centre image and mirror
+            sample = [line[0], theta, False]
+            samples.append(sample)
+            sample = [line[0], -1*theta, True]
+            samples.append(sample)
+            
+            # add left image and mirror
+            sample = [line[1], theta + angle_offset, False]
+            samples.append(sample)
+            sample = [line[1], -1*(theta + angle_offset), True]
+            samples.append(sample)
+            
+            # add right image and mirror
+            sample = [line[2], theta - angle_offset, False]
+            samples.append(sample)
+            sample = [line[2], -1*(theta - angle_offset), True]
+            samples.append(sample)
+            
     return samples
 
                     
@@ -92,7 +106,9 @@ def datagen(samples, batch_size=32):
             for batch_sample in batch_samples:
                 fname = os.path.join('.', 'record', 'IMG', batch_sample[0].split('\\')[-1])
                 center_im = mpim.imread(fname)
-                center_th = float(batch_sample[3])
+                if batch_sample[2]:
+                    center_im = cv2.flip(center_im, 1)
+                center_th = batch_sample[1]
                 images.append(center_im)
                 angles.append(center_th)
                 
