@@ -14,6 +14,52 @@ import numpy as np
 import cv2
 
 angle_offset = 0.1 # what angle to add/subtract for side cameras
+class suclass
+def net_nvidia():
+    model = Sequential()
+    
+    # input processing
+    # crop (50 px from top, 20 px from bottom)
+    model.add(Cropping2D(((50, 20), (0, 0)), input_shape=(160, 320, 3)))
+    
+    # transfer to YUV space to more closely follow the nvidia paper
+    
+    # normalise
+    model.add(Lambda(lambda x: (x/255)-0.5))
+    
+    model.add(Conv2D(24, kernel_size=(5, 5), strides=(2, 2)))
+    model.add(Activation('relu')) # the paper doesn't mention activation function, but isn't that needed?
+    
+    model.add(Conv2D(36, kernel_size=(5, 5), strides=(2, 2)))
+    model.add(Activation('relu')) 
+    
+    model.add(Conv2D(48, kernel_size=(5, 5), strides=(2, 2)))
+    model.add(Activation('relu')) 
+    
+    model.add(Conv2D(64, kernel_size=(3, 3), strides=(1, 1)))
+    model.add(Activation('relu')) 
+    
+    model.add(Conv2D(64, kernel_size=(3, 3), strides=(1, 1)))
+    model.add(Dropout(0.30))
+    model.add(Activation('relu')) 
+    
+    model.add(Flatten())
+    
+    model.add(Dense(100))
+    model.add(Activation('relu'))
+    
+    model.add(Dense(50))
+    model.add(Activation('relu'))
+    
+    model.add(Dense(10))
+    model.add(Activation('relu'))
+    
+    model.add(Dense(1))
+    
+    model.compile(loss='mse', optimizer='adam')
+    
+    return model
+    
 
 def network():
     model = Sequential()
@@ -133,7 +179,8 @@ def train(model, batch_size=32, epochs=5):
     return history
 
 if __name__ == "__main__":
-    print("Hello")
-    mdl = network()
-    print("Start training!")
+    print("Hello, driver")
+    mdl = net_nvidia()
+    
+    print("Begin training, now!")
     hst = train(mdl)
