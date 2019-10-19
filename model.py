@@ -14,7 +14,7 @@ import numpy as np
 import cv2
 
 angle_offset = 0.1 # what angle to add/subtract for side cameras
-class suclass
+
 def net_nvidia():
     model = Sequential()
     
