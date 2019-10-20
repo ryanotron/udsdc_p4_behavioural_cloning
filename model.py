@@ -13,16 +13,14 @@ import matplotlib.image as mpim
 import numpy as np
 import cv2
 
-angle_offset = 0.1 # what angle to add/subtract for side cameras
-class suclass
+angle_offset = 0.2 # what angle to add/subtract for side cameras
+
 def net_nvidia():
     model = Sequential()
     
     # input processing
     # crop (50 px from top, 20 px from bottom)
     model.add(Cropping2D(((50, 20), (0, 0)), input_shape=(160, 320, 3)))
-    
-    # transfer to YUV space to more closely follow the nvidia paper
     
     # normalise
     model.add(Lambda(lambda x: (x/255)-0.5))
@@ -59,7 +57,7 @@ def net_nvidia():
     model.compile(loss='mse', optimizer='adam')
     
     return model
-    
+
 
 def network():
     model = Sequential()
@@ -111,31 +109,43 @@ def network():
     return model
 
 
-def get_samples_list(fname):
+def get_samples_list(fname, mirror=True):
     global angle_offset
     samples = []
+    logpath = fname.split(os.sep)[:-1]
+    logpath = os.path.join(*logpath)
     with open(fname, 'r') as csvfile:
         reader = csv.reader(csvfile)
         for line in reader:
             theta = float(line[3])
             
             # add centre image and mirror
-            sample = [line[0], theta, False]
+            sep = '\\'
+            if 'linux' in line[0]:
+                sep = '/'
+                
+            impath = os.path.join(logpath, 'IMG', line[0].split(sep)[-1])
+            sample = [impath, theta, False]
             samples.append(sample)
-            sample = [line[0], -1*theta, True]
-            samples.append(sample)
+            if mirror:
+                sample = [impath, -1*theta, True]
+                samples.append(sample)
             
             # add left image and mirror
-            sample = [line[1], theta + angle_offset, False]
+            impath = os.path.join(logpath, 'IMG', line[1].split(sep)[-1])
+            sample = [impath, theta + angle_offset, False]
             samples.append(sample)
-            sample = [line[1], -1*(theta + angle_offset), True]
-            samples.append(sample)
+            if mirror:
+                sample = [impath, -1*(theta + angle_offset), True]
+                samples.append(sample)
             
             # add right image and mirror
-            sample = [line[2], theta - angle_offset, False]
+            impath = os.path.join(logpath, 'IMG', line[2].split(sep)[-1])
+            sample = [impath, theta - angle_offset, False]
             samples.append(sample)
-            sample = [line[2], -1*(theta - angle_offset), True]
-            samples.append(sample)
+            if mirror:
+                sample = [impath, -1*(theta - angle_offset), True]
+                samples.append(sample)
             
     return samples
 
@@ -150,7 +160,7 @@ def datagen(samples, batch_size=32):
             images = []
             angles = []
             for batch_sample in batch_samples:
-                fname = os.path.join('.', 'record', 'IMG', batch_sample[0].split('\\')[-1])
+                fname = batch_sample[0]
                 center_im = mpim.imread(fname)
                 if batch_sample[2]:
                     center_im = cv2.flip(center_im, 1)
@@ -163,15 +173,18 @@ def datagen(samples, batch_size=32):
             yield shuffle(images, angles)
 
             
-def train(model, batch_size=32, epochs=5):
-    fname = os.path.join('.', 'record', 'driving_log.csv')
-    samples = get_samples_list(fname)
+def train(model, train_fname=None, batch_size=32, epochs=5, mirror=True):
+    if not train_fname:
+        fname = os.path.join('.', 'record', 'driving_log.csv')
+    else:
+        fname = train_fname
+    samples = get_samples_list(fname, mirror=mirror)
+        
     train_samples, valid_samples = train_test_split(samples, test_size=0.25)
     
     train_gen = datagen(train_samples, batch_size=batch_size)
     valid_gen = datagen(valid_samples, batch_size=batch_size)
     
-    model = network()
     history = model.fit_generator(train_gen, steps_per_epoch=math.ceil(len(train_samples)/batch_size),
                                   validation_data=valid_gen, validation_steps=math.ceil(len(valid_samples)/batch_size),
                                   epochs=epochs, verbose=1)
