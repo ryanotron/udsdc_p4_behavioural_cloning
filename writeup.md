@@ -1,7 +1,5 @@
 # **Behavioral Cloning** 
 
-Forked from the [original](https://github.com/udacity/CarND-Behavioral-Cloning-P3)
-
 The goals / steps of this project are the following:
 
 * [x] Use the simulator to collect data of good driving behavior
