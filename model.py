@@ -13,7 +13,7 @@ import matplotlib.image as mpim
 import numpy as np
 import cv2
 
-angle_offset = 0.1 # what angle to add/subtract for side cameras
+angle_offset = 0.2 # what angle to add/subtract for side cameras
 
 def net_nvidia():
     model = Sequential()
@@ -21,9 +21,6 @@ def net_nvidia():
     # input processing
     # crop (50 px from top, 20 px from bottom)
     model.add(Cropping2D(((50, 20), (0, 0)), input_shape=(160, 320, 3)))
-    
-    # transfer to YUV space to more closely follow the nvidia paper [?}
-    # >>> it works OK with RGB
     
     # normalise
     model.add(Lambda(lambda x: (x/255)-0.5))
@@ -60,7 +57,7 @@ def net_nvidia():
     model.compile(loss='mse', optimizer='adam')
     
     return model
-    
+
 
 def network():
     model = Sequential()
@@ -123,7 +120,11 @@ def get_samples_list(fname, mirror=True):
             theta = float(line[3])
             
             # add centre image and mirror
-            impath = os.path.join(logpath, 'IMG', line[0].split('\\')[-1])
+            sep = '\\'
+            if 'linux' in line[0]:
+                sep = '/'
+                
+            impath = os.path.join(logpath, 'IMG', line[0].split(sep)[-1])
             sample = [impath, theta, False]
             samples.append(sample)
             if mirror:
@@ -131,7 +132,7 @@ def get_samples_list(fname, mirror=True):
                 samples.append(sample)
             
             # add left image and mirror
-            impath = os.path.join(logpath, 'IMG', line[1].split('\\')[-1])
+            impath = os.path.join(logpath, 'IMG', line[1].split(sep)[-1])
             sample = [impath, theta + angle_offset, False]
             samples.append(sample)
             if mirror:
@@ -139,7 +140,7 @@ def get_samples_list(fname, mirror=True):
                 samples.append(sample)
             
             # add right image and mirror
-            impath = os.path.join(logpath, 'IMG', line[2].split('\\')[-1])
+            impath = os.path.join(logpath, 'IMG', line[2].split(sep)[-1])
             sample = [impath, theta - angle_offset, False]
             samples.append(sample)
             if mirror:
